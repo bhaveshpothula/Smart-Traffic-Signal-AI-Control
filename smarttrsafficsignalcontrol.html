@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Traffic Signal Control AI Simulation</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #050a15;
+            --panel-bg: rgba(0, 15, 30, 0.7);
+            --neon-green: #00ffcc;
+            --neon-cyan: #00e5ff;
+            --neon-red: #ff0055;
+            --neon-amber: #ffcc00;
+            --light-green: #0f0;
+            --light-red: #f00;
+            --light-amber: #fa0;
+            --border-color: rgba(0, 255, 204, 0.3);
+            --text-main: #e0f7fa;
+            --road-bg: #1a1a24;
+            --ground-bg: #090e1a;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Orbitron', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            background-image:
+                radial-gradient(circle at 50% 50%, rgba(0, 255, 204, 0.05) 0%, transparent 50%),
+                linear-gradient(rgba(0, 255, 204, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 204, 0.03) 1px, transparent 1px);
+            background-size: 100% 100%, 30px 30px, 30px 30px;
+        }
+
+        header {
+            text-align: center;
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: 0 0 20px rgba(0, 255, 204, 0.1);
+            background: var(--panel-bg);
+            backdrop-filter: blur(5px);
+            z-index: 10;
+        }
+
+        h1 {
+            color: var(--neon-cyan);
+            text-shadow: 0 0 10px var(--neon-cyan);
+            font-size: 2rem;
+            letter-spacing: 2px;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+        }
+
+        header p {
+            color: #88ccee;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        .mode-display {
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+            letter-spacing: 2px;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        button {
+            background: transparent;
+            color: var(--neon-cyan);
+            border: 1px solid var(--neon-cyan);
+            padding: 10px 20px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            box-shadow: 0 0 10px rgba(0, 229, 255, 0.2) inset;
+        }
+
+        button:hover {
+            background: rgba(0, 229, 255, 0.2);
+            box-shadow: 0 0 20px var(--neon-cyan);
+        }
+
+        button.active {
+            background: rgba(0, 255, 204, 0.2);
+            border-color: var(--neon-green);
+            color: var(--neon-green);
+            box-shadow: 0 0 15px var(--neon-green);
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 280px 1fr 280px;
+            gap: 20px;
+            flex: 1;
+            padding: 20px;
+            max-width: 1500px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        @media (max-width: 1100px) {
+            .main-container {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto auto auto;
+            }
+
+            .simulation-area {
+                order: -1;
+            }
+        }
+
+        /* Panels */
+        .side-panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.6);
+            height: fit-content;
+            max-height: 600px;
+        }
+
+        .panel-title {
+            color: var(--neon-green);
+            text-align: center;
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(0, 255, 204, 0.2);
+            text-shadow: 0 0 8px var(--neon-green);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Algorithm Display */
+        .algo-step {
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            border-left: 4px solid #333;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            opacity: 0.4;
+            font-size: 0.85rem;
+            background: rgba(0, 0, 0, 0.3);
+            line-height: 1.4;
+        }
+
+        .algo-step.active {
+            opacity: 1;
+            border-left-color: var(--neon-cyan);
+            background: rgba(0, 229, 255, 0.15);
+            box-shadow: 0 0 15px rgba(0, 229, 255, 0.3);
+            transform: translateX(10px);
+        }
+
+        .algo-step strong {
+            color: var(--neon-cyan);
+            display: block;
+            margin-bottom: 5px;
+            font-size: 1.05rem;
+            letter-spacing: 0.5px;
+        }
+
+        /* Log Panel */
+        .log-container {
+            flex: 1;
+            overflow-y: auto;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.85rem;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding-right: 5px;
+        }
+
+        .log-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .log-container::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 3px;
+        }
+
+        .log-container::-webkit-scrollbar-thumb {
+            background: var(--neon-cyan);
+            border-radius: 3px;
+        }
+
+        .log-entry {
+            padding: 8px;
+            background: rgba(0, 0, 0, 0.4);
+            border-left: 2px solid transparent;
+            border-radius: 4px;
+            animation: slideIn 0.3s ease-out;
+            line-height: 1.4;
+        }
+
+        .log-entry.green {
+            border-left-color: var(--neon-green);
+            color: var(--neon-green);
+        }
+
+        .log-entry.red {
+            border-left-color: var(--neon-red);
+            color: var(--neon-red);
+        }
+
+        .log-entry.amber {
+            border-left-color: var(--neon-amber);
+            color: var(--neon-amber);
+        }
+
+        .log-entry.info {
+            border-left-color: #888;
+            color: #ccc;
+        }
+
+        .log-entry .time {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.75rem;
+            margin-right: 8px;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* Simulation Area */
+        .simulation-area {
+            position: relative;
+            background: #000;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            min-height: 600px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 0 40px rgba(0, 255, 204, 0.1) inset, 0 0 30px rgba(0, 0, 0, 0.8);
+            overflow: hidden;
+        }
+
+        .intersection {
+            width: 500px;
+            height: 500px;
+            position: relative;
+            background-color: var(--ground-bg);
+            border-radius: 50%;
+            box-shadow: 0 0 50px rgba(0, 255, 204, 0.05);
+        }
+
+        .road {
+            position: absolute;
+            background: var(--road-bg);
+        }
+
+        .road-vertical {
+            width: 140px;
+            height: 100%;
+            left: 180px;
+        }
+
+        .road-horizontal {
+            width: 100%;
+            height: 140px;
+            top: 180px;
+        }
+
+        /* Road lines */
+        .line-dashed-v {
+            position: absolute;
+            width: 4px;
+            height: 100%;
+            background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.5) 50%, transparent 50%);
+            background-size: 100% 40px;
+            left: 248px;
+            z-index: 2;
+        }
+
+        .line-dashed-h {
+            position: absolute;
+            height: 4px;
+            width: 100%;
+            background-image: linear-gradient(to right, rgba(255, 255, 255, 0.5) 50%, transparent 50%);
+            background-size: 40px 100%;
+            top: 248px;
+            z-index: 2;
+        }
+
+        .center-box {
+            position: absolute;
+            width: 140px;
+            height: 140px;
+            top: 180px;
+            left: 180px;
+            background: var(--road-bg);
+            z-index: 3;
+            border: 1px dashed rgba(255, 255, 255, 0.1);
+        }
+
+        /* Stop lines */
+        .stop-line {
+            position: absolute;
+            background: #fff;
+            z-index: 3;
+            box-shadow: 0 0 5px #fff;
+        }
+
+        .stop-north {
+            width: 65px;
+            height: 4px;
+            top: 176px;
+            left: 182px;
+        }
+
+        /* North source stop */
+        .stop-south {
+            width: 65px;
+            height: 4px;
+            top: 320px;
+            left: 252px;
+        }
+
+        .stop-west {
+            width: 4px;
+            height: 65px;
+            top: 252px;
+            left: 176px;
+        }
+
+        .stop-east {
+            width: 4px;
+            height: 65px;
+            top: 182px;
+            left: 320px;
+        }
+
+        /* Traffic Lights */
+        .traffic-light {
+            position: absolute;
+            background: #0a0a0a;
+            border: 2px solid #333;
+            border-radius: 8px;
+            padding: 8px;
+            display: flex;
+            gap: 8px;
+            z-index: 10;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.9);
+        }
+
+        .traffic-light:hover {
+            transform: scale(1.15);
+            border-color: var(--neon-cyan);
+            box-shadow: 0 0 20px rgba(0, 229, 255, 0.4);
+        }
+
+        .traffic-light::after {
+            content: 'MANUAL';
+            position: absolute;
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.6rem;
+            color: var(--neon-cyan);
+            opacity: 0;
+            transition: 0.3s;
+            pointer-events: none;
+        }
+
+        .traffic-light:hover::after {
+            opacity: 1;
+        }
+
+        .tl-v {
+            flex-direction: column;
+            width: 36px;
+            height: 96px;
+        }
+
+        .tl-h {
+            flex-direction: row;
+            width: 96px;
+            height: 36px;
+        }
+
+        .light {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #222;
+            opacity: 0.15;
+            transition: all 0.3s;
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.5);
+        }
+
+        .light.red.active {
+            background: var(--light-red);
+            opacity: 1;
+            box-shadow: 0 0 20px var(--light-red), inset 0 0 5px #fff;
+        }
+
+        .light.amber.active {
+            background: var(--light-amber);
+            opacity: 1;
+            box-shadow: 0 0 20px var(--light-amber), inset 0 0 5px #fff;
+        }
+
+        .light.green.active {
+            background: var(--light-green);
+            opacity: 1;
+            box-shadow: 0 0 20px var(--light-green), inset 0 0 5px #fff;
+        }
+
+        /* Placements */
+        #tl-north {
+            top: 70px;
+            left: 130px;
+        }
+
+        #tl-south {
+            top: 330px;
+            left: 330px;
+        }
+
+        #tl-west {
+            top: 330px;
+            left: 70px;
+        }
+
+        #tl-east {
+            top: 130px;
+            left: 330px;
+        }
+
+        /* Lane Markers / Density Scanners */
+        .scanner-beam {
+            position: absolute;
+            background: rgba(0, 255, 204, 0.1);
+            z-index: 5;
+            pointer-events: none;
+            border-radius: 20px;
+        }
+
+        .scan-v {
+            width: 66px;
+            height: 100px;
+        }
+
+        .scan-h {
+            width: 100px;
+            height: 66px;
+        }
+
+        #scan-north {
+            top: 70px;
+            left: 180px;
+            background: linear-gradient(to top, rgba(0, 255, 204, 0.2), transparent);
+        }
+
+        #scan-south {
+            top: 330px;
+            left: 250px;
+            background: linear-gradient(to bottom, rgba(0, 255, 204, 0.2), transparent);
+        }
+
+        #scan-west {
+            top: 250px;
+            left: 70px;
+            background: linear-gradient(to left, rgba(0, 255, 204, 0.2), transparent);
+        }
+
+        #scan-east {
+            top: 180px;
+            left: 330px;
+            background: linear-gradient(to right, rgba(0, 255, 204, 0.2), transparent);
+        }
+
+        /* Density Indicators */
+        .density-label {
+            position: absolute;
+            background: rgba(5, 10, 25, 0.9);
+            border: 1px solid var(--border-color);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            color: var(--text-main);
+            z-index: 20;
+            text-align: center;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.8);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            backdrop-filter: blur(4px);
+            min-width: 80px;
+        }
+
+        .density-label span {
+            display: block;
+            font-size: 1.2rem;
+            font-weight: 900;
+            margin-top: 4px;
+        }
+
+        .val-Low {
+            color: var(--neon-green);
+            text-shadow: 0 0 10px var(--neon-green);
+        }
+
+        .val-Med {
+            color: var(--neon-amber);
+            text-shadow: 0 0 10px var(--neon-amber);
+        }
+
+        .val-High {
+            color: var(--neon-red);
+            text-shadow: 0 0 10px var(--neon-red);
+        }
+
+        /* Placements mapping to sources */
+        #dens-north {
+            top: 20px;
+            left: 215px;
+            transform: translateX(-50%);
+        }
+
+        #dens-south {
+            bottom: 20px;
+            left: 285px;
+            transform: translateX(-50%);
+        }
+
+        #dens-west {
+            top: 285px;
+            left: 40px;
+            transform: translateY(-50%);
+        }
+
+        #dens-east {
+            top: 215px;
+            right: 40px;
+            transform: translateY(-50%);
+        }
+
+        /* Cars */
+        .car-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 6;
+            pointer-events: none;
+        }
+
+        .car {
+            position: absolute;
+            border-radius: 4px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.8);
+        }
+
+        .car-v {
+            width: 22px;
+            height: 38px;
+        }
+
+        .car-h {
+            width: 38px;
+            height: 22px;
+        }
+
+        .car-1 {
+            background: #ff3366;
+        }
+
+        .car-1::after {
+            box-shadow: 0 0 15px #ff3366;
+        }
+
+        .car-2 {
+            background: #33ccff;
+        }
+
+        .car-2::after {
+            box-shadow: 0 0 15px #33ccff;
+        }
+
+        .car-3 {
+            background: #ffcc00;
+        }
+
+        .car-3::after {
+            box-shadow: 0 0 15px #ffcc00;
+        }
+
+        .car-4 {
+            background: #cc33ff;
+        }
+
+        .car-4::after {
+            box-shadow: 0 0 15px #cc33ff;
+        }
+
+        .car-5 {
+            background: #ffffff;
+        }
+
+        .car-5::after {
+            box-shadow: 0 0 15px #ffffff;
+        }
+
+        /* Headlights/Taillights effect */
+        .car::before {
+            content: '';
+            position: absolute;
+            background: rgba(255, 0, 0, 0.8);
+            border-radius: 50%;
+        }
+
+        .car::after {
+            content: '';
+            position: absolute;
+            background: rgba(255, 255, 200, 0.9);
+            border-radius: 50%;
+        }
+
+        /* North source (moves down) */
+        .car-dir-north::before {
+            top: 2px;
+            left: 3px;
+            width: 16px;
+            height: 2px;
+        }
+
+        /* Taillights at back (top) */
+        .car-dir-north::after {
+            bottom: -2px;
+            left: 3px;
+            width: 16px;
+            height: 4px;
+            box-shadow: 0 5px 10px rgba(255, 255, 200, 0.6);
+        }
+
+        /* Headlights at front (bottom) */
+
+        /* South source (moves up) */
+        .car-dir-south::before {
+            bottom: 2px;
+            left: 3px;
+            width: 16px;
+            height: 2px;
+        }
+
+        .car-dir-south::after {
+            top: -2px;
+            left: 3px;
+            width: 16px;
+            height: 4px;
+            box-shadow: 0 -5px 10px rgba(255, 255, 200, 0.6);
+        }
+
+        /* West source (moves right) */
+        .car-dir-west::before {
+            left: 2px;
+            top: 3px;
+            width: 2px;
+            height: 16px;
+        }
+
+        .car-dir-west::after {
+            right: -2px;
+            top: 3px;
+            width: 4px;
+            height: 16px;
+            box-shadow: 5px 0 10px rgba(255, 255, 200, 0.6);
+        }
+
+        /* East source (moves left) */
+        .car-dir-east::before {
+            right: 2px;
+            top: 3px;
+            width: 2px;
+            height: 16px;
+        }
+
+        .car-dir-east::after {
+            left: -2px;
+            top: 3px;
+            width: 4px;
+            height: 16px;
+            box-shadow: -5px 0 10px rgba(255, 255, 200, 0.6);
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <h1>Smart Traffic Signal AI Control</h1>
+        <p>Autonomous IoT Sensor Network & Intelligent Intersection Management</p>
+        <div class="mode-display" id="mode-display">
+            SYSTEM MODE: <span id="mode-status" style="color: var(--neon-green)">AI AUTONOMOUS</span>
+        </div>
+        <div class="controls">
+            <button id="btn-toggle-ai" class="active">Disable AI Auto-Cycle</button>
+            <button id="btn-clear-log">Clear System Log</button>
+        </div>
+        <div class="manual-panel" id="manual-panel"
+            style="display: none; justify-content: center; gap: 10px; margin-top: 15px;">
+            <button id="btn-north">Force North Green</button>
+            <button id="btn-south">Force South Green</button>
+            <button id="btn-east">Force East Green</button>
+            <button id="btn-west">Force West Green</button>
+        </div>
+    </header>
+
+    <div class="main-container">
+
+        <!-- Left Panel: Algorithm -->
+        <div class="side-panel algo-panel">
+            <div class="panel-title">AI Algorithm Loop</div>
+            <div id="algo-1" class="algo-step active">
+                <strong>1. Capture Data</strong>
+                Read autonomous IoT lidar/camera sensor telemetry from 4 incoming lanes.
+            </div>
+            <div id="algo-2" class="algo-step">
+                <strong>2. Detect Density</strong>
+                Compute real-time queue length & density metrics (Low / Med / High).
+            </div>
+            <div id="algo-3" class="algo-step">
+                <strong>3. Compare States</strong>
+                Evaluate congestion urgency incorporating wait-time penalty factors.
+            </div>
+            <div id="algo-4" class="algo-step">
+                <strong>4. Assign Priority</strong>
+                Select the most critical lane for throughput maximization.
+            </div>
+            <div id="algo-5" class="algo-step">
+                <strong>5. Adjust Signals</strong>
+                Execute phase transition securely with amber buffers and all-red clearance.
+            </div>
+            <div id="algo-6" class="algo-step">
+                <strong>6. Repeat Cycle</strong>
+                Maintain sustained optimal green phase then loop continuous monitoring.
+            </div>
+        </div>
+
+        <!-- Center Panel: Simulation -->
+        <div class="simulation-area">
+            <div class="intersection">
+                <div class="road road-vertical"></div>
+                <div class="road road-horizontal"></div>
+                <div class="line-dashed-v"></div>
+                <div class="line-dashed-h"></div>
+
+                <div class="stop-line stop-north"></div>
+                <div class="stop-line stop-south"></div>
+                <div class="stop-line stop-east"></div>
+                <div class="stop-line stop-west"></div>
+
+                <div class="center-box"></div>
+
+                <!-- Density Sensors / Scanners -->
+                <div id="scan-north" class="scanner-beam scan-v"></div>
+                <div id="scan-south" class="scanner-beam scan-v"></div>
+                <div id="scan-west" class="scanner-beam scan-h"></div>
+                <div id="scan-east" class="scanner-beam scan-h"></div>
+
+                <!-- Traffic Lights -->
+                <!-- North Light (Controls cars coming from top, going down) -->
+                <div id="tl-north" class="traffic-light tl-v" onclick="manualOverride('north')">
+                    <div class="light red active"></div>
+                    <div class="light amber"></div>
+                    <div class="light green"></div>
+                </div>
+                <!-- South Light (Controls cars coming from bottom, going up) -->
+                <div id="tl-south" class="traffic-light tl-v" onclick="manualOverride('south')">
+                    <div class="light red active"></div>
+                    <div class="light amber"></div>
+                    <div class="light green"></div>
+                </div>
+                <!-- East Light (Controls cars coming from right, going left) -->
+                <div id="tl-east" class="traffic-light tl-h" onclick="manualOverride('east')">
+                    <div class="light red active"></div>
+                    <div class="light amber"></div>
+                    <div class="light green"></div>
+                </div>
+                <!-- West Light (Controls cars coming from left, going right) -->
+                <div id="tl-west" class="traffic-light tl-h" onclick="manualOverride('west')">
+                    <div class="light red active"></div>
+                    <div class="light amber"></div>
+                    <div class="light green"></div>
+                </div>
+
+                <!-- Density Labels -->
+                <div id="dens-north" class="density-label">North<br><span class="val-Low">LOW</span></div>
+                <div id="dens-south" class="density-label">South<br><span class="val-Low">LOW</span></div>
+                <div id="dens-east" class="density-label">East<br><span class="val-Low">LOW</span></div>
+                <div id="dens-west" class="density-label">West<br><span class="val-Low">LOW</span></div>
+
+                <!-- Cars Layer -->
+                <div id="car-layer" class="car-layer"></div>
+            </div>
+        </div>
+
+        <!-- Right Panel: Log -->
+        <div class="side-panel log-panel">
+            <div class="panel-title">AI Decision Log</div>
+            <div id="decision-log" class="log-container">
+                <div class="log-entry info"><span class="time">[00:00:00]</span> AI Orchestrator Boot Sequence Complete.
+                    Sensors Online.</div>
+                <div class="log-entry info"><span class="time">[00:00:01]</span> Engaging Autonomous Mode.</div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const btnToggleAI = document.getElementById('btn-toggle-ai');
+        const modeStatus = document.getElementById('mode-status');
+        const manualPanel = document.getElementById('manual-panel');
+
+        let manualMode = false;
+        let currentGreen = 'north';
+        let aiInterval;
+
+        let carsNorth = [];
+        let carsEast = [];
+        let carsSouth = [];
+        let carsWest = [];
+
+        function setGreen(lane) {
+            currentGreen = lane;
+            const lanes = ['north', 'south', 'east', 'west'];
+            lanes.forEach(l => {
+                const parent = document.getElementById(`tl-${l}`);
+                if (parent) {
+                    parent.querySelector('.red').classList.remove('active');
+                    parent.querySelector('.amber').classList.remove('active');
+                    parent.querySelector('.green').classList.remove('active');
+                    if (l === lane) {
+                        parent.querySelector('.green').classList.add('active');
+                    } else {
+                        parent.querySelector('.red').classList.add('active');
+                    }
+                }
+            });
+        }
+
+        function startAI() {
+            if (aiInterval) clearInterval(aiInterval);
+            const cycleSequence = ['north', 'east', 'south', 'west'];
+            aiInterval = setInterval(() => {
+                let idx = cycleSequence.indexOf(currentGreen);
+                let nextIdx = (idx + 1) % cycleSequence.length;
+                setGreen(cycleSequence[nextIdx]);
+            }, 4000);
+        }
+
+        // Dummy function to prevent errors from leftover onclicks on traffic lights
+        window.manualOverride = function (lane) { };
+
+        // Step 2: Buttons
+        document.getElementById('btn-north').addEventListener('click', () => {
+            console.log('Button clicked: north');
+            manualMode = true;
+            clearInterval(aiInterval);
+            setGreen('north');
+        });
+        document.getElementById('btn-south').addEventListener('click', () => {
+            console.log('Button clicked: south');
+            manualMode = true;
+            clearInterval(aiInterval);
+            setGreen('south');
+        });
+        document.getElementById('btn-east').addEventListener('click', () => {
+            console.log('Button clicked: east');
+            manualMode = true;
+            clearInterval(aiInterval);
+            setGreen('east');
+        });
+        document.getElementById('btn-west').addEventListener('click', () => {
+            console.log('Button clicked: west');
+            manualMode = true;
+            clearInterval(aiInterval);
+            setGreen('west');
+        });
+
+        btnToggleAI.addEventListener('click', () => {
+            manualMode = !manualMode;
+            if (!manualMode) {
+                btnToggleAI.innerText = "Disable AI Auto-Cycle";
+                btnToggleAI.classList.add('active');
+                if (modeStatus) modeStatus.innerText = "AI AUTONOMOUS";
+                if (modeStatus) modeStatus.style.color = "var(--neon-green)";
+                if (manualPanel) manualPanel.style.display = "none";
+                startAI();
+            } else {
+                btnToggleAI.innerText = "Resume AI Mode";
+                btnToggleAI.classList.remove('active');
+                if (modeStatus) modeStatus.innerText = "MANUAL OVERRIDE";
+                if (modeStatus) modeStatus.style.color = "var(--neon-amber)";
+                if (manualPanel) manualPanel.style.display = "flex";
+                clearInterval(aiInterval);
+            }
+        });
+
+        const btnClear = document.getElementById('btn-clear-log');
+        if (btnClear) {
+            btnClear.addEventListener('click', () => {
+                const logDiv = document.getElementById('decision-log');
+                if (logDiv) logDiv.innerHTML = '';
+            });
+        }
+
+        // Step 3: Cars Logic
+        function createCarDiv(lane) {
+            const div = document.createElement('div');
+            const isV = (lane === 'north' || lane === 'south');
+            div.className = `car ${isV ? 'car-v' : 'car-h'} car-${Math.floor(Math.random() * 5) + 1} car-dir-${lane}`;
+            document.getElementById('car-layer').appendChild(div);
+            return div;
+        }
+
+        function canSpawn(laneArr) {
+            if (laneArr.length === 0) return true;
+            let lastCar = laneArr[laneArr.length - 1]; // because array is push-based
+            return lastCar.pos > 80;
+        }
+
+        setInterval(() => {
+            if (canSpawn(carsNorth)) carsNorth.push({ pos: 0, element: createCarDiv('north') });
+        }, 2000);
+        setInterval(() => {
+            if (canSpawn(carsEast)) carsEast.push({ pos: 0, element: createCarDiv('east') });
+        }, 2000);
+        setInterval(() => {
+            if (canSpawn(carsSouth)) carsSouth.push({ pos: 0, element: createCarDiv('south') });
+        }, 2000);
+        setInterval(() => {
+            if (canSpawn(carsWest)) carsWest.push({ pos: 0, element: createCarDiv('west') });
+        }, 2000);
+
+        function updateCarArray(lane, arr) {
+            const stopLine = 140;
+
+            for (let i = 0; i < arr.length; i++) {
+                let car = arr[i];
+                let isAllowed = (lane === currentGreen);
+
+                let frontCarPos = (i === 0) ? Infinity : arr[i - 1].pos;
+                let minGap = 50;
+
+                if (isAllowed) {
+                    if (frontCarPos - car.pos > minGap) {
+                        car.pos += 2;
+                    }
+                } else {
+                    if (i === 0) {
+                        if (car.pos < stopLine) {
+                            car.pos += 2;
+                            if (car.pos >= stopLine) car.pos = stopLine;
+                        } else {
+                            car.pos = stopLine;
+                        }
+                    } else {
+                        let targetPos = frontCarPos - minGap;
+                        if (car.pos < targetPos) {
+                            car.pos += 2;
+                            if (car.pos >= targetPos) car.pos = targetPos;
+                        } else {
+                            car.pos = targetPos;
+                        }
+                    }
+                }
+
+                // Render based on HTML layout
+                let x = 0, y = 0;
+                if (lane === 'north') {
+                    x = 205; y = car.pos;
+                } else if (lane === 'south') {
+                    x = 275; y = 500 - car.pos - 38;
+                } else if (lane === 'east') {
+                    x = 500 - car.pos - 38; y = 205;
+                } else if (lane === 'west') {
+                    x = car.pos; y = 275;
+                }
+
+                car.element.style.transform = `translate(${x}px, ${y}px)`;
+                car.element.style.opacity = (car.pos > 20 && car.pos < 480) ? 1 : 0;
+            }
+
+            // Remove out of bounds cars
+            while (arr.length > 0 && arr[0].pos > 550) {
+                let c = arr.shift();
+                c.element.remove();
+            }
+        }
+
+        function gameLoop() {
+            updateCarArray('north', carsNorth);
+            updateCarArray('east', carsEast);
+            updateCarArray('south', carsSouth);
+            updateCarArray('west', carsWest);
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Step 1: On page load, immediately set North to GREEN, South/East/West to RED
+        function initSignals() {
+            setGreen('north');
+            startAI();
+        }
+
+        gameLoop();
+        initSignals();
+
+    </script>
+</body>
+
+</html>
